@@ -10,7 +10,10 @@ const projectCards = document.querySelectorAll('#real-projects-grid .project-car
 const skeletonGrid = document.getElementById('skeleton-grid');
 const realProjectsGrid = document.getElementById('real-projects-grid');
 const noProjectsMessage = document.getElementById('noProjectsMessage');
-const GOOGLE_SCRIPT_URL = 'google sheet url';
+const EMAILJS_PUBLIC_KEY = 'w8jT_hIx8DjFeQa31';
+const EMAILJS_SERVICE_ID = 'service_n5qmx1p';
+const EMAILJS_TEMPLATE_ID = 'template_fw89dkg';
+
 const certificateModal = document.getElementById('certificateModal');
 const closeModalBtn = document.getElementById('closeModal');
 const modalOverlay = document.querySelector('.modal-overlay');
@@ -70,10 +73,10 @@ function initSkillBars() {
 
 function filterProjects(filter) {
     let hasVisibleProjects = false;
-    
+
     projectCards.forEach(card => {
         const categories = card.getAttribute('data-category').split(' ');
-        
+
         if (filter === 'all' || categories.includes(filter)) {
             card.style.display = 'block';
             hasVisibleProjects = true;
@@ -81,7 +84,7 @@ function filterProjects(filter) {
             card.style.display = 'none';
         }
     });
-    
+
     // Show/hide no projects message
     if (hasVisibleProjects) {
         noProjectsMessage.style.display = 'none';
@@ -108,65 +111,63 @@ function loadProjects() {
 
 async function handleContactFormSubmit(e) {
     e.preventDefault();
-    
+
     // Get form data
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
     const subject = document.getElementById('subject').value.trim();
     const message = document.getElementById('message').value;
-    
+
     // Validate form
     if (!name || !email || !message) {
         showFormMessage('Please fill in all fields', 'error');
         return;
     }
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         showFormMessage('Please enter a valid email address', 'error');
         return;
     }
-    
+
     // Show loading state
     const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Sending...';
     submitBtn.disabled = true;
-    
-    // Prepare data for Google Sheets
-    const formData = {
-        name: name,
-        email: email,
+
+    // Prepare template parameters for EmailJS
+    const templateParams = {
+        name: name,       // Added for compatibility
+        email: email,     // Added for compatibility
+        from_name: name,
+        from_email: email,
         subject: subject,
         message: message,
-        timestamp: new Date().toISOString()
+        to_name: 'Naga Sri Swetha M',
+        reply_to: email
     };
-    
+
     try {
-        // Send to Google Sheets
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(formData).toString()
-        });
-        showFormMessage('Message sent successfully! ✅', 'success');
-        
-        // Reset form
-        contactForm.reset();
-        
-        console.log('Form submitted successfully:', formData);
-        
+        // Send using EmailJS
+        const result = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+
+        if (result.status === 200) {
+            showFormMessage('Message sent successfully! ✅', 'success');
+            contactForm.reset();
+            console.log('EmailJS response:', result.text);
+        } else {
+            throw new Error('EmailJS returned an unexpected status');
+        }
+
     } catch (error) {
-        console.error('Error submitting form:', error);
+        console.error('Error sending message:', error);
         showFormMessage('Failed to send message. You can also email me directly at nagasriswethamurugan@gmail.com', 'error');
     } finally {
         // Reset button state
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
-        
+
         setTimeout(() => {
             formMessage.style.display = 'none';
         }, 5000);
@@ -180,12 +181,12 @@ function showFormMessage(message, type) {
 }
 function initSmoothScrolling() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
+        anchor.addEventListener('click', function (e) {
             e.preventDefault();
-            
+
             const targetId = this.getAttribute('href');
             if (targetId === '#') return;
-            
+
             const targetElement = document.querySelector(targetId);
             if (targetElement) {
                 window.scrollTo({
@@ -198,31 +199,17 @@ function initSmoothScrolling() {
     });
 }
 
-// Test Google Sheets connection
-async function testGoogleSheetsConnection() {
-    try {
-        const testData = { name: 'Test', email: 'test@example.com', message: 'Test connection' };
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: new URLSearchParams(testData).toString()
-        });
-        console.log('Google Sheets connection test completed');
-    } catch (error) {
-        console.warn('Google Sheets might not be properly configured:', error);
-    }
-}
 
 function openModal(card) {
     const img = card.getAttribute('data-image');
     const title = card.getAttribute('data-full-title');
     const desc = card.getAttribute('data-full-desc');
-    
+
     modalImg.src = img;
     modalTitle.textContent = title;
     modalDesc.textContent = desc;
     modalDownload.href = img;
-    
+
     certificateModal.classList.add('active');
     document.body.style.overflow = 'hidden'; // Prevent scrolling
 }
@@ -230,7 +217,7 @@ function openModal(card) {
 function closeModal() {
     certificateModal.classList.remove('active');
     document.body.style.overflow = 'auto'; // Restore scrolling
-    
+
     // Clear image after transition to avoid flicker next time
     setTimeout(() => {
         modalImg.src = '';
@@ -239,13 +226,13 @@ function closeModal() {
 
 // Initialize everything
 function init() {
-
+    emailjs.init(EMAILJS_PUBLIC_KEY);
     initTheme();
     themeToggle.addEventListener('click', toggleTheme);
-    
+
     // Mobile menu
     mobileMenu.addEventListener('click', toggleMobileMenu);
-    
+
     document.addEventListener('click', (e) => {
         if (!mobileMenu.contains(e.target) && !navLinks.contains(e.target)) {
             if (window.innerWidth <= 768) {
@@ -253,50 +240,49 @@ function init() {
             }
         }
     });
-    
+
     updateCurrentYear();
     initSkillBars();
-    
+
     // Project filtering
     if (projectFilters.length > 0) {
         projectFilters.forEach(btn => {
             btn.addEventListener('click', handleFilterClick);
         });
-        
+
         // Load projects with skeleton loading
         loadProjects();
     }
-    
+
     // Contact form
     if (contactForm) {
         contactForm.addEventListener('submit', handleContactFormSubmit);
-        
-        // Test connection on page load
-        setTimeout(testGoogleSheetsConnection, 2000);
+
+        // No test connection needed for EmailJS as it's initialized in init()
     }
-    
+
     // Modal Event Listeners
     const clickableCards = document.querySelectorAll('.achievement-card.clickable, .experience-card.clickable');
     clickableCards.forEach(card => {
         card.addEventListener('click', () => openModal(card));
     });
-    
+
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
-    
+
     // Close modal on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && certificateModal.classList.contains('active')) {
             closeModal();
         }
     });
-    
+
     // Smooth scrolling
     initSmoothScrolling();
     const observerOptions = {
         threshold: 0.5
     };
-    
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -305,12 +291,12 @@ function init() {
             }
         });
     }, observerOptions);
-    
+
     const skillsSection = document.getElementById('skills');
     if (skillsSection) {
         observer.observe(skillsSection);
     }
-    
+
     console.log('Portfolio initialized successfully');
 }
 
