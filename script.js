@@ -11,6 +11,13 @@ const skeletonGrid = document.getElementById('skeleton-grid');
 const realProjectsGrid = document.getElementById('real-projects-grid');
 const noProjectsMessage = document.getElementById('noProjectsMessage');
 const GOOGLE_SCRIPT_URL = 'google sheet url';
+const certificateModal = document.getElementById('certificateModal');
+const closeModalBtn = document.getElementById('closeModal');
+const modalOverlay = document.querySelector('.modal-overlay');
+const modalImg = document.getElementById('modalImg');
+const modalTitle = document.getElementById('modalTitle');
+const modalDesc = document.getElementById('modalDesc');
+const modalDownload = document.getElementById('modalDownload');
 
 function toggleTheme() {
     const currentTheme = document.body.getAttribute('data-theme');
@@ -206,6 +213,30 @@ async function testGoogleSheetsConnection() {
     }
 }
 
+function openModal(card) {
+    const img = card.getAttribute('data-image');
+    const title = card.getAttribute('data-full-title');
+    const desc = card.getAttribute('data-full-desc');
+    
+    modalImg.src = img;
+    modalTitle.textContent = title;
+    modalDesc.textContent = desc;
+    modalDownload.href = img;
+    
+    certificateModal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+}
+
+function closeModal() {
+    certificateModal.classList.remove('active');
+    document.body.style.overflow = 'auto'; // Restore scrolling
+    
+    // Clear image after transition to avoid flicker next time
+    setTimeout(() => {
+        modalImg.src = '';
+    }, 400);
+}
+
 // Initialize everything
 function init() {
 
@@ -243,6 +274,22 @@ function init() {
         // Test connection on page load
         setTimeout(testGoogleSheetsConnection, 2000);
     }
+    
+    // Modal Event Listeners
+    const clickableCards = document.querySelectorAll('.achievement-card.clickable, .experience-card.clickable');
+    clickableCards.forEach(card => {
+        card.addEventListener('click', () => openModal(card));
+    });
+    
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && certificateModal.classList.contains('active')) {
+            closeModal();
+        }
+    });
     
     // Smooth scrolling
     initSmoothScrolling();
